@@ -1,28 +1,29 @@
 package core.basesyntax;
-
 import java.util.NoSuchElementException;
-
 public class ArrayList<T> implements List<T> {
     private static final int DEFAULT_CAPACITY = 10;
+    private static final int GROWTH_NUMERATOR = 3;
+    private static final int GROWTH_DENOMINATOR = 2;
     private T[] elementData;
     private int size;
-
     public ArrayList() {
         this.elementData = (T[]) new Object[DEFAULT_CAPACITY];
         this.size = 0;
     }
 
     @Override
-    public void add(T value) {
-        ensureCapacity(size + 1, 0, false);
-        elementData[size++] = value;
+    public boolean add(T value) {
+        ensureCapacity(size + 1);
+        elementData[size()] = value;
         size++;
+        return true;
     }
 
     @Override
-    public void add(T value, int index) {
-        checkElementIndex(index);
-        ensureCapacity(size + 1, index, true);
+    public void add(int index, T value) {
+        checkPositionIndexForAdd(index);
+        ensureCapacity(size + 1);
+        shiftElementsForInsert(index);
         elementData[index] = value;
         size++;
     }
@@ -45,9 +46,11 @@ public class ArrayList<T> implements List<T> {
     }
 
     @Override
-    public void set(T value, int index) {
+    public T set(T value, int index) {
         checkElementIndex(index);
+        T oldElementData = elementData[index];
         elementData[index] = value;
+        return oldElementData;
     }
 
     @Override
@@ -74,7 +77,7 @@ public class ArrayList<T> implements List<T> {
             }
         }
         if (index == -1) {
-            throw new NoSuchElementException("No such element in the list with index " + index);
+            throw new NoSuchElementException("Element not found in list: " + element);
         }
         T value = elementData[index];
         System.arraycopy(elementData, index + 1, elementData, index, size() - index - 1);
@@ -93,32 +96,37 @@ public class ArrayList<T> implements List<T> {
         return size() == 0;
     }
 
-    public void checkElementIndex(int index) {
+    private void checkPositionIndexForAdd(int index) {
+        if (index < 0 || index > size) {
+            throw new ArrayListIndexOutOfBoundsException(
+                    "Index " + index + " out of bounds for add with size " + size
+            );
+        }
+    }
+    private void checkElementIndex(int index) {
         if (index < 0 || index >= size()) {
-            throw new ArrayListIndexOutOfBoundsException("Index" + index + " out of array with size " + size());
+            throw new ArrayListIndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
     }
 
-    public void ensureCapacity(int minCapacity, int index, boolean shiftForInsert) {
-        if (minCapacity < elementData.length) {
-            if (shiftForInsert) {
-                System.arraycopy(elementData, index, elementData, index + 1, size() - index);
-            }
-            return;
+    private void ensureCapacity(int minCapacity) {
+        if (elementData.length >= minCapacity) {
+            return; // resize не нужен
         }
-        int minLength = elementData.length;
-        while ((minLength + minLength / 2) < minCapacity) {
-            minLength = minLength + minLength / 2;
-        }
+        grow(minCapacity);
+    }
 
-        T[] newArray = (T[]) new Object[minLength];
-
-        if (shiftForInsert) {
-            System.arraycopy(elementData, 0, newArray, 0, index);
-            System.arraycopy(elementData, index, newArray, index + 1, size() - index);
-        } else {
-            System.arraycopy(elementData, 0, newArray, 0, size);
+    private void grow(int minCapacity) {
+        int newCapacity = elementData.length * GROWTH_NUMERATOR / GROWTH_DENOMINATOR;
+        if (newCapacity < minCapacity) {
+            newCapacity = minCapacity;
         }
+        T[] newArray = (T[]) new Object[newCapacity];
+        System.arraycopy(elementData, 0, newArray, 0, size);
         elementData = newArray;
+    }
+
+    private void shiftElementsForInsert(int index) {
+        System.arraycopy(elementData, index, elementData, index + 1, size - index);
     }
 }
